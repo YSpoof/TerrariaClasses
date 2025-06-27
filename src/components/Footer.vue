@@ -38,7 +38,7 @@
   <dialog
     ref="moreInfoModal"
     class="modal">
-    <div class="modal-box w-fit max-w-1/2">
+    <div class="modal-box max-w-11/12 md:max-w-1/2">
       <h3 class="text-lg font-bold">More Information</h3>
       <p class="py-4">
         This app was heavily inspired by the work of
