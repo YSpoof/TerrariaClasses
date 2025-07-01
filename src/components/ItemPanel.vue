@@ -1,5 +1,10 @@
 <script setup lang="ts">
-  import type { Weapon, Accessory, BuffsPotionsAmmo } from "@/types.d";
+  import type {
+    Weapon,
+    Accessory,
+    BuffsPotionsAmmo,
+    Attributes,
+  } from "@/types.d";
   import TransitionWrapper from "@/components/TransitionWrapper.vue";
 
   interface Props {
@@ -23,28 +28,51 @@
           group
           type="scale"
           tag="div"
-          class="flex flex-nowrap overflow-x-auto sm:flex-wrap gap-4 w-full"
+          class="flex flex-nowrap overflow-x-auto sm:flex-wrap gap-4 w-full p-4"
           appear>
           <div
             v-for="(item, index) in items"
             :key="item.name"
             :style="{ '--delay': `${index * 50}ms` }"
-            class="flex flex-col items-center mx-auto">
+            class="flex flex-col items-center hover:scale-105 transition-all">
             <a
               :href="item.link"
               target="_blank"
-              class="block w-22 h-22 hover:scale-110 transition-all duration-200 rounded-lg hover:bg-base-300/20 hover:shadow-lg">
+              class="card bg-base-100 shadow hover:shadow-lg transition-shadow p-4 hover:bg-base-200 relative">
               <img
                 :src="baseIconUrl + item.icon"
                 :alt="item.name"
                 :title="item.name"
-                class="w-full h-full rounded-lg bg-base-300 p-2 object-contain transition-all duration-200"
+                class="w-12 h-12 object-contain mb-2 mx-auto"
                 style="image-rendering: pixelated" />
+              <h4 class="text-xs text-center font-medium w-24 truncate">
+                {{ item.name }}
+              </h4>
+              <div
+                v-if="item.attributes && item.attributes.length > 0"
+                class="absolute top-1 left-1 flex gap-1">
+                <span
+                  v-for="attribute in item.attributes"
+                  :key="attribute"
+                  class="badge badge-xs p-1 w-4 h-4 flex items-center justify-center"
+                  :class="{
+                    'badge-error': attribute === 'homing',
+                    'badge-info': attribute === 'piercing',
+                  }"
+                  :title="attribute">
+                  <span
+                    v-if="attribute === 'homing'"
+                    class="text-[10px]"
+                    >🎯</span
+                  >
+                  <span
+                    v-else-if="attribute === 'piercing'"
+                    class="text-[10px]"
+                    >☄️</span
+                  >
+                </span>
+              </div>
             </a>
-            <p
-              class="text-base-content/60 mt-1 text-center truncate max-w-22 text-xs">
-              {{ item.name }}
-            </p>
           </div>
         </TransitionWrapper>
       </div>

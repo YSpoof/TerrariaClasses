@@ -18,9 +18,6 @@
 
 <template>
   <div class="bg-base-200 border-b border-base-300 p-4">
-    <div class="text-xs font-bold text-base-content/60 mb-4 text-center">
-      GAME STAGE
-    </div>
     <div class="flex justify-center">
       <TransitionWrapper
         group
