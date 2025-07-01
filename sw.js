@@ -1,153 +1,131 @@
 const CACHE_NAME = "tc-v1";
-const IMAGE_CACHE = "tc-images-v1";
-const JSON_CACHE = "tc-json-v1";
 
-// Helper function to check if we're on localhost
-const isLocalhost = () => {
-  return (
-    self.location.hostname === "localhost" ||
-    self.location.hostname === "127.0.0.1" ||
-    self.location.hostname === "[::1]"
+// Install event - cache initial resources
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => {
+        console.log("Service Worker: Initial cache created");
+      })
+      .then(() => {
+        // Force the waiting service worker to become the active service worker
+        return self.skipWaiting();
+      })
   );
-};
-
-// Conditional logging helper
-const logIfLocalhost = (...args) => {
-  if (isLocalhost()) {
-    console.log(...args);
-  }
-};
-
-const errorIfLocalhost = (...args) => {
-  if (isLocalhost()) {
-    console.error(...args);
-  }
-};
-
-// Install event - cache essential files
-self.addEventListener("install", () => {
-  logIfLocalhost("Service Worker: Install Event");
-  self.skipWaiting();
 });
 
 // Activate event - clean up old caches
 self.addEventListener("activate", (event) => {
-  logIfLocalhost("Service Worker: Activate Event");
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (
-            cacheName !== CACHE_NAME &&
-            cacheName !== IMAGE_CACHE &&
-            cacheName !== JSON_CACHE
-          ) {
-            logIfLocalhost("Service Worker: Deleting old cache:", cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches
+      .keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log("Service Worker: Deleting old cache:", cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      })
+      .then(() => {
+        // Ensure the service worker takes control of all pages immediately
+        return self.clients.claim();
+      })
   );
-  self.clients.claim();
 });
 
-// Fetch event - implement caching strategies
+// Fetch event - cache-first strategy for JSON and images only
 self.addEventListener("fetch", (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  // Cache images with cache-first strategy
-  if (
-    request.destination === "image" ||
-    /\.(png|webp|svg|ico)$/i.test(url.pathname)
-  ) {
-    event.respondWith(cacheFirstStrategy(request, IMAGE_CACHE));
+  // Only handle HTTP/HTTPS requests
+  if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) {
     return;
   }
 
-  // Cache JSON files with stale-while-revalidate strategy
-  if (
-    request.url.includes(".json") ||
-    request.headers.get("accept")?.includes("application/json")
-  ) {
-    event.respondWith(staleWhileRevalidateStrategy(request, JSON_CACHE));
+  // Only cache images and JSON files
+  const shouldCache = event.request.destination === 'image' || 
+                     event.request.url.endsWith('.json');
+
+  if (!shouldCache) {
+    // For non-cacheable requests, just fetch normally
     return;
   }
 
-  // For all other requests, try network first, fallback to cache
   event.respondWith(
-    fetch(request).catch(() => {
-      return caches.match(request);
+    caches.match(event.request, { ignoreSearch: true }).then((response) => {
+      // Return cached version if available
+      if (response) {
+        console.log("Service Worker: ✅ Serving from cache:", event.request.url);
+        return response;
+      }
+
+      // Otherwise fetch from network
+      console.log("Service Worker: 🌐 Fetching from network:", event.request.url);
+      return fetch(event.request)
+        .then((response) => {
+          // Check if we received a valid response
+          if (!response) {
+            console.log("Service Worker: ❌ No response for:", event.request.url);
+            return response;
+          }
+
+          // Accept responses with status 200 OR status 0 (opaque responses from CORS)
+          if (response.status !== 200 && response.status !== 0) {
+            console.log("Service Worker: ❌ Bad status", response.status, "for:", event.request.url);
+            return response;
+          }
+
+          console.log("Service Worker: ✅ Valid response for:", event.request.url, "Status:", response.status, "Type:", response.type);
+
+          // Clone the response since it can only be consumed once
+          const responseToCache = response.clone();
+
+          // Add to cache with better error handling
+          caches.open(CACHE_NAME).then((cache) => {
+            return cache.put(event.request, responseToCache);
+          }).then(() => {
+            console.log("Service Worker: 💾 Successfully cached:", event.request.url);
+          }).catch((error) => {
+            console.error("Service Worker: ❌ Failed to cache:", event.request.url, error);
+          });
+
+          return response;
+        })
+        .catch((error) => {
+          console.error("Service Worker: ❌ Fetch failed:", event.request.url, error);
+          throw error;
+        });
     })
   );
 });
 
-// Cache-first strategy for images
-async function cacheFirstStrategy(request, cacheName) {
-  try {
-    // Try to get from cache first
-    const cache = await caches.open(cacheName);
-    const cachedResponse = await cache.match(request);
-
-    if (cachedResponse) {
-      logIfLocalhost("Service Worker: Serving from cache:", request.url);
-      return cachedResponse;
-    }
-
-    // If not in cache, fetch from network and cache it
-    logIfLocalhost("Service Worker: Fetching and caching:", request.url);
-    const networkResponse = await fetch(request);
-
-    if (networkResponse.ok) {
-      const responseClone = networkResponse.clone();
-      await cache.put(request, responseClone);
-    }
-
-    return networkResponse;
-  } catch (error) {
-    errorIfLocalhost("Service Worker: Cache-first strategy failed:", error);
-    return new Response("Network error", { status: 408 });
+// Message event - for communication with the main thread
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
   }
-}
-
-// Stale-while-revalidate strategy for JSON files
-async function staleWhileRevalidateStrategy(request, cacheName) {
-  try {
-    const cache = await caches.open(cacheName);
-    const cachedResponse = await cache.match(request);
-
-    // Start fetching from network (don't await yet)
-    const networkResponsePromise = fetch(request).then(async (response) => {
-      if (response.ok) {
-        const responseClone = response.clone();
-        await cache.put(request, responseClone);
-        logIfLocalhost("Service Worker: Updated cache for:", request.url);
-      }
-      return response;
-    });
-
-    // Return cached version immediately if available
-    if (cachedResponse) {
-      logIfLocalhost("Service Worker: Serving stale content:", request.url);
-      // Update cache in background
-      networkResponsePromise.catch((error) => {
-        errorIfLocalhost("Service Worker: Background update failed:", error);
+  
+  // Debug: List all cached URLs
+  if (event.data && event.data.type === "LIST_CACHE") {
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.keys();
+    }).then((requests) => {
+      console.log("📦 Service Worker: Cached URLs (" + requests.length + " items):");
+      requests.forEach((request, index) => {
+        console.log(`  ${index + 1}. ${request.url}`);
       });
-      return cachedResponse;
-    }
-
-    // If no cached version, wait for network
-    logIfLocalhost(
-      "Service Worker: No cache, waiting for network:",
-      request.url
-    );
-    return await networkResponsePromise;
-  } catch (error) {
-    errorIfLocalhost(
-      "Service Worker: Stale-while-revalidate strategy failed:",
-      error
-    );
-    return new Response("Network error", { status: 408 });
+      if (requests.length === 0) {
+        console.log("  (Cache is empty)");
+      }
+    });
   }
-}
+
+  // Debug: Clear cache
+  if (event.data && event.data.type === "CLEAR_CACHE") {
+    caches.delete(CACHE_NAME).then(() => {
+      console.log("🗑️ Service Worker: Cache cleared");
+    });
+  }
+});
