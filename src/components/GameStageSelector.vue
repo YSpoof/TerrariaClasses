@@ -21,7 +21,7 @@
     <div class="flex justify-center">
       <TransitionWrapper
         group
-        type="slide"
+        type="fade"
         tag="ul"
         class="steps gap-2"
         appear>

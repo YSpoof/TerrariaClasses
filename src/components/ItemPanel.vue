@@ -6,13 +6,20 @@
     Attributes,
   } from "@/types.d";
   import TransitionWrapper from "@/components/TransitionWrapper.vue";
+  import { computed } from "vue";
 
   interface Props {
     title: string;
     items: Weapon[] | Accessory[] | BuffsPotionsAmmo[];
     baseIconUrl: string;
+    transitionType?: "fade" | "slide" | "scale" | "bounce" | "flip";
   }
-  defineProps<Props>();
+  const { transitionType = "fade" } = defineProps<Props>();
+
+  const getUniqueAttributes = (attributes?: Attributes[]) => {
+    if (!attributes) return [];
+    return [...new Set(attributes)];
+  };
 </script>
 
 <template>
@@ -26,7 +33,7 @@
         class="flex-1 flex flex-nowrap sm:flex-wrap gap-4 overflow-auto items-center">
         <TransitionWrapper
           group
-          type="scale"
+          :type="transitionType"
           tag="div"
           class="flex flex-nowrap overflow-x-auto sm:flex-wrap gap-4 w-full p-4"
           appear>
@@ -49,10 +56,10 @@
                 {{ item.name }}
               </h4>
               <div
-                v-if="item.attributes && item.attributes.length > 0"
+                v-if="getUniqueAttributes(item.attributes).length > 0"
                 class="absolute top-1 left-1 flex gap-1">
                 <span
-                  v-for="attribute in item.attributes"
+                  v-for="attribute in getUniqueAttributes(item.attributes)"
                   :key="attribute"
                   class="badge badge-xs p-1 w-4 h-4 flex items-center justify-center"
                   :class="{

@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { data, loadData, baseIconUrl } from "@/data";
   import { onMounted, shallowRef, computed } from "vue";
+  import { gameStage, playerClass } from "@/stores/settings";
   import LoadingSpinner from "@/components/LoadingSpinner.vue";
   import GameStageSelector from "@/components/GameStageSelector.vue";
   import ClassSelector from "@/components/ClassSelector.vue";
@@ -8,12 +9,10 @@
   import EmptyState from "@/components/EmptyState.vue";
 
   const isLoading = shallowRef(true);
-  const selectedGameStage = shallowRef(0);
-  const selectedPlayerClass = shallowRef(0);
 
-  const currentGameStage = computed(() => data.value[selectedGameStage.value]);
+  const currentGameStage = computed(() => data.value[gameStage.value]);
   const currentPlayerClass = computed(
-    () => currentGameStage.value?.classes[selectedPlayerClass.value]
+    () => currentGameStage.value?.classes[playerClass.value]
   );
 
   onMounted(async () => {
@@ -38,27 +37,27 @@
       <!-- Top Header - Game Stage -->
       <GameStageSelector
         :game-stages="data"
-        :selected-game-stage="selectedGameStage"
+        :selected-game-stage="gameStage"
         :base-icon-url="baseIconUrl"
-        @update:selected-game-stage="selectedGameStage = $event" />
+        @update:selected-game-stage="gameStage = $event" />
 
       <!-- Main Content Area -->
       <div class="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
         <!-- Player Class Selection -->
         <div
           class="class-selector-container"
-          :key="selectedGameStage">
+          :key="gameStage">
           <ClassSelector
             v-if="currentGameStage?.classes"
             :classes="currentGameStage.classes"
-            :selected-player-class="selectedPlayerClass"
-            @update:selected-player-class="selectedPlayerClass = $event" />
+            :selected-player-class="playerClass"
+            @update:selected-player-class="playerClass = $event" />
         </div>
 
         <!-- Content Layout -->
         <div
           class="content-container h-full w-full"
-          :key="`${selectedGameStage}-${selectedPlayerClass}`">
+          :key="`${gameStage}-${playerClass}`">
           <div
             v-if="currentPlayerClass"
             class="h-full flex-1 flex flex-col lg:flex-row gap-4 p-4 lg:overflow-hidden bg-base-100">
@@ -69,6 +68,7 @@
               <ItemPanel
                 v-if="currentPlayerClass.armor.length"
                 title="Armors"
+                transition-type="bounce"
                 :items="currentPlayerClass.armor"
                 :base-icon-url="baseIconUrl"
                 class="flex-1" />
@@ -77,6 +77,7 @@
               <ItemPanel
                 v-if="currentPlayerClass.weapons.length"
                 title="Weapons"
+                transition-type="flip"
                 :items="currentPlayerClass.weapons"
                 :base-icon-url="baseIconUrl"
                 class="flex-1" />
@@ -89,6 +90,7 @@
               <ItemPanel
                 v-if="currentPlayerClass.accessories.length"
                 title="Accessories"
+                transition-type="scale"
                 :items="currentPlayerClass.accessories"
                 :base-icon-url="baseIconUrl"
                 class="flex-1" />
@@ -97,6 +99,7 @@
               <ItemPanel
                 v-if="currentPlayerClass.buffsPotionsAmmo.length"
                 title="Potions / Food / Ammo"
+                transition-type="fade"
                 :items="currentPlayerClass.buffsPotionsAmmo"
                 :base-icon-url="baseIconUrl"
                 class="flex-1" />

@@ -14,42 +14,42 @@
     moveClass?: string;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    name: "",
-    type: "fade",
-    mode: undefined,
-    appear: false,
-    duration: undefined,
-    delay: 0,
-    disabled: false,
-    group: false,
-    tag: "div",
-    moveClass: undefined,
-  });
+  const {
+    name = "",
+    type = "fade",
+    mode,
+    appear = false,
+    duration,
+    delay = 0,
+    disabled = false,
+    group = false,
+    tag = "div",
+    moveClass,
+  } = defineProps<Props>();
 
   // Generate the transition name based on type if no custom name is provided
   const transitionName = computed(() => {
-    if (props.name) return props.name;
-    return `transition-${props.type}`;
+    if (name) return name;
+    return `transition-${type}`;
   });
 
   // Generate the move class name for TransitionGroup
   const moveClassName = computed(() => {
-    if (props.moveClass) return props.moveClass;
+    if (moveClass) return moveClass;
     return `${transitionName.value}-move`;
   });
 
   // Calculate duration with delay
   const transitionDuration = computed(() => {
-    if (!props.duration) return undefined;
+    if (!duration) return undefined;
 
-    if (typeof props.duration === "number") {
-      return props.duration + props.delay;
+    if (typeof duration === "number") {
+      return duration + delay;
     }
 
     return {
-      enter: props.duration.enter + props.delay,
-      leave: props.duration.leave + props.delay,
+      enter: duration.enter + delay,
+      leave: duration.leave + delay,
     };
   });
 </script>

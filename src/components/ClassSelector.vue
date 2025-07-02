@@ -25,7 +25,7 @@
       class="flex lg:flex-col gap-2 lg:space-y-2 lg:gap-0 overflow-x-auto lg:overflow-x-visible">
       <TransitionWrapper
         group
-        type="scale"
+        type="flip"
         tag="div"
         class="flex lg:flex-col gap-2 lg:space-y-2 lg:gap-0 w-full"
         appear>
