@@ -45,3 +45,12 @@ export interface BuffsPotionsAmmo {
   link: string;
   attributes?: Attributes[];
 }
+
+export interface ModOption {
+  name: string;
+  route: string;
+  icon: string;
+  description: string;
+  color: string;
+  available: boolean;
+}

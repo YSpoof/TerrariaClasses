@@ -6,7 +6,6 @@
     Attributes,
   } from "@/types.d";
   import TransitionWrapper from "@/components/TransitionWrapper.vue";
-  import { computed } from "vue";
 
   interface Props {
     title: string;
