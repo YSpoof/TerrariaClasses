@@ -18,7 +18,7 @@
             </svg>
           </div>
         </div>
-        <p class="text-lg">Select a player class to view items</p>
+        <p class="text-lg">Select a game stage to view the data</p>
       </div>
     </TransitionWrapper>
   </div>
